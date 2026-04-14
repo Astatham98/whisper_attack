@@ -26,7 +26,7 @@ __set_seed: !apply:torch.manual_seed [!ref <seed>]
 root: !PLACEHOLDER
 tokenizers_folder: !ref <root>/tokenizers
 
-# Hyparameters below are dependant on the attack and model used
+# Hyperparameters below are dependent on the attack and model used
 # and should be changed at the user's discretion
 # -------------------------------------------------------------
 # Attack information
@@ -54,7 +54,7 @@ source_brain_hparams_file: !ref model_configs/<model_label>.yaml
 tokenizer_name: multilingual
 tokenizer_builder: !name:whisper.tokenizer.get_tokenizer
 
-   # -------------------------------------------------------------
+# -------------------------------------------------------------
 
 output_folder: !ref <root>/attacks/<attack_name>/<source_model_name>-<snr>/<seed>
 wer_file: !ref <output_folder>/wer.txt
