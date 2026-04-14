@@ -1,5 +1,6 @@
 **/*.pyc
 *.txt
+!requirements.txt
 **/*.wav
 **/*.csv
 *.zip
