@@ -1,4 +1,4 @@
-# Attack configuration for VCTK dataset (CSTR-Edinburgh/VCTK-Corpus-0.92)
+# Attack configuration for VCTK dataset (CSTR-Edinburgh/vctk)
 # using the SNR-constrained PGD (Projected Gradient Descent) attack.
 #
 # Usage example:
@@ -63,9 +63,10 @@ log: !ref <output_folder>/log.txt
 save_audio_path: !ref <output_folder>/save
 
 # dataset_prepare_fct points to vctk_prepare.prepare_vctk which:
-#   1. Streams 100 utterances from CSTR-Edinburgh/VCTK-Corpus-0.92 on HuggingFace
+#   1. Randomly samples 100 utterances from CSTR-Edinburgh/vctk on HuggingFace
 #   2. Saves them as 16 kHz WAV files under <data_folder>/audio/
 #   3. Writes <csv_folder>/vctk-100.csv
+# The top-level seed is also used as the dataset sampling seed.
 dataset_prepare_fct: !name:vctk_prepare.prepare_vctk
 dataio_prepare_fct: !name:robust_speech.data.dataio.dataio_prepare
 

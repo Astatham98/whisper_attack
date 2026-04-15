@@ -18,6 +18,7 @@ python run_attack.py attack_configs/pgd/attack.yaml\
 import os
 import sys
 from pathlib import Path
+import inspect
 
 import speechbrain as sb
 from hyperpyyaml import load_hyperpyyaml
@@ -29,6 +30,26 @@ import logging
 
 logger = logging.getLogger("speechbrain.utils.epoch_loop")
 logger.setLevel(logging.WARNING)
+
+
+def _prepare_dataset_kwargs(prepare_dataset, hparams):
+    kwargs = {
+        "data_folder": hparams["data_folder"],
+        "te_splits": hparams["test_splits"],
+        "save_folder": hparams["csv_folder"],
+        "skip_prep": hparams["skip_prep"],
+    }
+    signature = inspect.signature(prepare_dataset)
+    supports_var_kwargs = any(
+        parameter.kind == inspect.Parameter.VAR_KEYWORD
+        for parameter in signature.parameters.values()
+    )
+    if (
+        "seed" in hparams
+        and ("sample_seed" in signature.parameters or supports_var_kwargs)
+    ):
+        kwargs["sample_seed"] = hparams["seed"]
+    return kwargs
 
 def read_brains(
     brain_classes,
@@ -92,12 +113,7 @@ def fit(hparams_file, run_opts, overrides):
     # multi-gpu (ddp) save data preparation
     run_on_main(
         prepare_dataset,
-        kwargs={
-            "data_folder": hparams["data_folder"],
-            "te_splits": hparams["test_splits"],
-            "save_folder": hparams["csv_folder"],
-            "skip_prep": hparams["skip_prep"],
-        },
+        kwargs=_prepare_dataset_kwargs(prepare_dataset, hparams),
     )
 
     dataio_prepare = hparams["dataio_prepare_fct"]
