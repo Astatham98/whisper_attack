@@ -17,6 +17,7 @@ python run_attack.py attack_configs/pgd/attack.yaml\
 """
 import os
 import sys
+import time
 from pathlib import Path
 
 import speechbrain as sb
@@ -26,6 +27,33 @@ from speechbrain.utils.distributed import run_on_main
 import robust_speech as rs
 from robust_speech.adversarial.brain import AdvASRBrain
 from robust_speech.adversarial.utils import TargetGeneratorFromFixedTargets
+
+
+def write_attack_timing(timings_file, split_name, elapsed_seconds, dataset=None):
+    num_samples = None
+    seconds_per_sample = None
+
+    if dataset is not None:
+        try:
+            num_samples = len(dataset)
+        except TypeError:
+            num_samples = None
+
+    if num_samples:
+        seconds_per_sample = elapsed_seconds / num_samples
+
+    lines = [
+        f"split: {split_name}",
+        f"elapsed_seconds: {elapsed_seconds:.6f}",
+    ]
+
+    if num_samples is not None:
+        lines.append(f"num_samples: {num_samples}")
+    if seconds_per_sample is not None:
+        lines.append(f"seconds_per_sample: {seconds_per_sample:.6f}")
+
+    with open(timings_file, "w", encoding="utf-8") as timing_fh:
+        timing_fh.write("\n".join(lines) + "\n")
 
 
 def read_brains(
@@ -177,6 +205,10 @@ def evaluate(hparams_file, run_opts, overrides):
         target_brain.hparams.wer_file = os.path.join(
             hparams["output_folder"], "wer_{}.txt".format(k)
         )
+        target_brain.hparams.timings_file = os.path.join(
+            hparams["output_folder"], "timings_{}.txt".format(k)
+        )
+        start_time = time.perf_counter()
         target_brain.evaluate(
             test_datasets[k],
             test_loader_kwargs=hparams["test_dataloader_opts"],
@@ -184,6 +216,13 @@ def evaluate(hparams_file, run_opts, overrides):
             save_audio_path=save_audio_path,
             sample_rate=hparams["sample_rate"],
             target=target,
+        )
+        elapsed_seconds = time.perf_counter() - start_time
+        write_attack_timing(
+            target_brain.hparams.timings_file,
+            k,
+            elapsed_seconds,
+            dataset=test_datasets[k],
         )
 
 
