@@ -23,6 +23,47 @@ class WhisperASR(AdvASRBrain):
     Whisper ASR model
     """
 
+    @staticmethod
+    def _sanitize_audio(wavs):
+        if torch.isfinite(wavs).all():
+            return wavs
+
+        logger.warning(
+            "Non-finite audio values detected during Whisper inference; replacing them before decoding."
+        )
+        return torch.nan_to_num(wavs, nan=0.0, posinf=1.0, neginf=-1.0)
+
+    def _decode_with_fallback(self, wav, tokens, dtype, loss_options, options):
+        result = self.modules.whisper.model.loss(
+            wav.to(dtype), tokens[0], task="transcribe", **loss_options, **options
+        )
+        loss = result["loss"].detach()
+        logits = result["logits"]
+
+        if not torch.isfinite(logits).all():
+            logger.warning(
+                "Non-finite Whisper logits encountered during evaluation; falling back to sanitized argmax decoding."
+            )
+            logits = torch.nan_to_num(logits, nan=-1e4, posinf=1e4, neginf=-1e4)
+            return loss, logits.argmax(dim=-1)
+
+        decode_options = dict(options)
+        decode_options["temperature"] = 0.0
+
+        try:
+            result = self.modules.whisper.model.transcribe(
+                wav, task="transcribe", **decode_options
+            )
+            text = result["text"]
+            return loss, torch.LongTensor([self.tokenizer.encode(text)])
+        except ValueError as exc:
+            if "invalid values" not in str(exc):
+                raise
+            logger.warning(
+                "Whisper transcribe() produced invalid logits during evaluation; using argmax token fallback."
+            )
+            return loss, logits.argmax(dim=-1)
+
     def compute_forward(self, batch, stage):
         """Forward computations from the waveform batches to the output probabilities."""
         if not stage == rs.Stage.ATTACK:
@@ -58,20 +99,15 @@ class WhisperASR(AdvASRBrain):
 
             if hasattr(self.hparams, "augmentation"):
                 wavs = self.hparams.augmentation(wavs, wav_lens)
+        wavs = self._sanitize_audio(wavs)
         # Forward pass
         tokens, _ = batch.tokens
         if stage != sb.Stage.TRAIN and stage != rs.Stage.ATTACK:
             # Decode token terms to words
             with torch.no_grad():
-                result = self.modules.whisper.model.loss(
-                    wavs[0].to(dtype), tokens[0], task="transcribe", **loss_options, **options)
-                loss = result["loss"].detach()
-                #logits = result["logits"]
-                #pred_tokens = logits.argmax(dim=-1)
-                result = self.modules.whisper.model.transcribe(
-                    wavs[0], task="transcribe", **options)
-                text = result["text"]
-                pred_tokens = torch.LongTensor([self.tokenizer.encode(text)])
+                loss, pred_tokens = self._decode_with_fallback(
+                    wavs[0], tokens, dtype, loss_options, options
+                )
         else:
             result = self.modules.whisper.model.loss(
                 wavs[0], tokens[0], task="transcribe", **loss_options, **options)

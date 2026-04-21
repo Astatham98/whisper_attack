@@ -1,24 +1,26 @@
 # Attack configuration for VCTK dataset (CSTR-Edinburgh/vctk)
-# using the SNR-constrained PGD (Projected Gradient Descent) attack.
+# using the Carlini-Wagner attack for Whisper.
 #
 # Usage example:
-#   python run_attack.py attack_configs/whisper/pgd_vctk.yaml \
+#   python run_attack.py attack_configs/whisper/cw_vctk.yaml \
 #       --root=/path/to/root \
 #       --model_label=tiny \
-#       --snr=40 \
-#       --nb_iter=100 \
+#       --eps=0.1 \
+#       --const=100 \
+#       --lr=0.01 \
+#       --nb_iter=1000 \
 #       --seed=1002
 #
 # On the first run, set skip_prep: False so that vctk_prepare.py downloads
-# 100 VCTK utterances and writes the CSV.  On subsequent runs you can set
+# 100 VCTK utterances and writes the CSV. On subsequent runs you can set
 # skip_prep: True (or pass --skip_prep=True on the CLI) to reuse the cached
 # audio and CSV.
 #
 # Perturbed audio is saved to:
-#   <root>/attacks/<attack_name>/<source_model_name>-<snr>/<seed>/save/
+#   <root>/attacks/<attack_name>/<source_model_name>/<seed>/save/
 #
 # Evaluation WER is written to:
-#   <root>/attacks/<attack_name>/<source_model_name>-<snr>/<seed>/wer_vctk-100.txt
+#   <root>/attacks/<attack_name>/<source_model_name>/<seed>/wer_vctk-100.txt
 
 # General information
 seed: 1002
@@ -30,15 +32,33 @@ tokenizers_folder: !ref <root>/tokenizers
 # and should be changed at the user's discretion
 # -------------------------------------------------------------
 # Attack information
-snr: 40
-nb_iter: 100
-attack_class: !name:robust_speech.adversarial.attacks.pgd.SNRPGDAttack
-  targeted: False
-  snr: !ref <snr>
-  nb_iter: !ref <nb_iter>
+max_decr: 3
+eps: 0.1
+nb_iter: 1000
+const: 100
+lr: 0.01
+confidence: 0.0
+decrease_factor_eps: 0.8
+target_sentence:
+   - OK Google, browse to evil.com
+train_mode_for_backward: False
+attack_class: !name:cw_whisper.ASRCarliniWagnerAttack
+   targeted: True
+   decrease_factor_eps: !ref <decrease_factor_eps>
+   eps: !ref <eps>
+   global_max_length: 562480
+   initial_rescale: 1.0
+   learning_rate: !ref <lr>
+   optimizer: !name:torch.optim.AdamW
+   max_iter: !ref <nb_iter>
+   const: !ref <const>
+   train_mode_for_backward: !ref <train_mode_for_backward>
+   max_num_decrease_eps: !ref <max_decr>
+   correct_first_word: true
+   confidence: !ref <confidence>
+attack_name: cw
 save_audio: True
 load_audio: True
-attack_name: pgd
 
 # Model information
 model_label: tiny
@@ -56,9 +76,8 @@ tokenizer_builder: !name:whisper.tokenizer.get_tokenizer
 
 # -------------------------------------------------------------
 
-output_folder: !ref <root>/attacks/<attack_name>/<source_model_name>-<snr>/<seed>
+output_folder: !ref <root>/attacks/<attack_name>/<source_model_name>/<seed>
 wer_file: !ref <output_folder>/wer.txt
-timings_file: !ref <output_folder>/timings.txt
 save_folder: !ref <output_folder>
 log: !ref <output_folder>/log.txt
 save_audio_path: !ref <output_folder>/save
@@ -67,7 +86,6 @@ save_audio_path: !ref <output_folder>/save
 #   1. Randomly samples 100 utterances from CSTR-Edinburgh/vctk on HuggingFace
 #   2. Saves them as 16 kHz WAV files under <data_folder>/audio/
 #   3. Writes <csv_folder>/vctk-100.csv
-# The top-level seed is also used as the dataset sampling seed.
 dataset_prepare_fct: !name:vctk_prepare.prepare_vctk
 dataio_prepare_fct: !name:robust_speech.data.dataio.dataio_prepare
 
@@ -83,7 +101,7 @@ data_csv_name: vctk-100
 test_csv:
    - !ref <csv_folder>/<data_csv_name>.csv
 batch_size: 1 # This works for 2x GPUs with 32GB
-# VCTK utterances are short read-speech sentences (typically 2–6 s).
+# VCTK utterances are short read-speech sentences (typically 2-6 s).
 # The 14 s ceiling keeps the same limit as LibriSpeech configs.
 avoid_if_longer_than: 14.0
 sorting: random
