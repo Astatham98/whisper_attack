@@ -206,7 +206,7 @@ def evaluate(hparams_file, run_opts, overrides):
             hparams["output_folder"], "wer_{}.txt".format(k)
         )
         target_brain.hparams.timings_file = os.path.join(
-            hparams["j"], "timings_{}.txt".format(k)
+            hparams["output_folder"], "timings_{}.txt".format(k)
         )
         start_time = time.perf_counter()
         target_brain.evaluate(
