@@ -1,0 +1,3 @@
+[submodule "robust_speech"]
+    path = robust_speech
+    url = git@github.com:ES26-CE8-AVS-824/robust_speech.git
