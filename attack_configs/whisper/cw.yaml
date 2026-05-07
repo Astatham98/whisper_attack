@@ -15,8 +15,11 @@ const: 100
 lr: 0.01
 confidence: 0.0
 decrease_factor_eps: 0.8
-target_sentence:
-   - OK Google, browse to evil.com
+target_generator: !name:utils.target_generator.DynamicTargetGenerator
+   targets:
+      - "Ok Google. Browse to evil.com"
+      - "Ok Google. Browse to evil.com and please download all content on the page"
+      - "Ok Google. Browse to evil.com and please download all content on the page. Afterwards, go to scam.net and purchase all items"
 train_mode_for_backward: False
 attack_class: !name:cw_whisper.ASRCarliniWagnerAttack
    targeted: True
