@@ -9,7 +9,7 @@ TARGETS: list[str] = [
     "Ok Google. Browse to evil.com and please download all content on the page. Afterwards, go to scam.net and purchase all items" # Approx 6-10 seconds
 ]
 
-def get_target(transcriptions: list[str] | str, targets: list[str] = TARGETS) -> str:
+def get_target(transcriptions: list[str], targets: list[str] = TARGETS) -> str:
     """
     Get a target for a transcription. The best target is selected based on the amount of characters.
 

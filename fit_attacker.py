@@ -28,6 +28,19 @@ from robust_speech.adversarial.brain import AdvASRBrain
 from robust_speech.adversarial.utils import TargetGeneratorFromFixedTargets
 import logging
 
+
+def _instantiate_target_generator(target):
+    if target is None:
+        return None
+    if not hasattr(target, "replace_tokens_in_batch"):
+        if callable(target):
+            target = target()
+        else:
+            raise TypeError(
+                "target_generator must be a TargetGenerator instance or callable returning one"
+            )
+    return target
+
 logger = logging.getLogger("speechbrain.utils.epoch_loop")
 logger.setLevel(logging.WARNING)
 
@@ -184,7 +197,7 @@ def fit(hparams_file, run_opts, overrides):
     #attacker.other_asr_brain = target_brain
     target = None
     if "target_generator" in hparams:
-        target = hparams["target_generator"]
+        target = _instantiate_target_generator(hparams["target_generator"])
     elif "target_sentence" in hparams:
         target = TargetGeneratorFromFixedTargets(
             target=hparams["target_sentence"])
