@@ -80,6 +80,24 @@ def prepare_vctk(
         a different subset may be selected on each preparation run.
     """
     os.makedirs(save_folder, exist_ok=True)
+    POSSIBLE_SAMPLES = te_splits.split("-")[-1]
+    if POSSIBLE_SAMPLES != "100" and POSSIBLE_SAMPLES.isdigit():
+        num_samples = int(POSSIBLE_SAMPLES)
+        logger.info(
+            "Overriding num_samples to %d based on te_splits argument.",
+            num_samples,
+        )
+    elif POSSIBLE_SAMPLES != "100" and not POSSIBLE_SAMPLES.isdigit() and POSSIBLE_SAMPLES == "all":
+        num_samples = None  # No limit; use all available samples
+        logger.info(
+            "Overriding num_samples to None (use all samples) based on te_splits argument."
+        )
+    else:
+        logger.info(
+            "Using default num_samples=%d since te_splits argument does not specify a sample count.",
+            num_samples,
+        )
+        
 
     if skip_prep and _all_csvs_exist(te_splits, save_folder):
         logger.info("Skipping VCTK preparation — CSV files already present.")
@@ -112,6 +130,7 @@ def prepare_vctk(
         sample_seed=sample_seed,
     )
 
+    if type(te_splits) == str: te_splits = [te_splits]
     for split in te_splits:
         csv_path = os.path.join(save_folder, split + ".csv")
         _write_csv(csv_path, rows)
