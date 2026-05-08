@@ -84,8 +84,6 @@ class WhisperASR(AdvASRBrain):
             "confidence": self.hparams.confidence if hasattr(self.hparams, "confidence") else 0.,
             "correct_first_word": self.hparams.correct_first_word if hasattr(self.hparams, "correct_first_word") else False
         }
-        if options["fp16"]:
-            self.modules.to(torch.float16)
         dtype = torch.float16 if options["fp16"] else torch.float32
 
         if hasattr(self.hparams, "smoothing") and self.hparams.smoothing:
