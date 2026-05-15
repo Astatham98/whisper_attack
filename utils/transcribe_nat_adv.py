@@ -29,17 +29,17 @@ def wers(
 ):
     base_path = Path(base_path) if base_path is not None else PROJECT_ROOT
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    vctk_files = [
-        "vctk_00{}".format(i) if i > 9 else "vctk_000{}".format(i) for i in range(100)
-    ]
     save_dir = base_path / "data" / "attacks" / attack / attack_path / "save"
-    saved_audio_files = list(save_dir.iterdir())
-    if len(saved_audio_files) < 200:
+    vctk_files = sorted(
+        f"vctk_{audio_file.stem.split('_')[1]}"
+        for audio_file in save_dir.glob("vctk_*_adv.wav")
+    )
+    #Modify for demand
+    if len(vctk_files) == 0:
         vctk_files = sorted(
-            f"vctk_{audio_file.stem.split('_')[1]}"
-            for audio_file in saved_audio_files
-            if audio_file.name.endswith("_adv.wav")
+            str(audio_file).replace("_adv.wav", "").split("/")[-1] for audio_file in save_dir.glob("*_adv.wav")
         )
+    print(f"Evaluating {len(vctk_files)} samples from {attack_path} on model {model} with attack {attack}...")
 
     whisper_model = whisper.load_model(model).to(device)
 
