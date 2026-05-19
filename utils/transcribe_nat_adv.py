@@ -49,9 +49,7 @@ def wers(
         csv_path = Path(csv_path)
 
     df = pd.read_csv(csv_path)
-    wers = {}
-    clean_texts = {}
-    adv_texts = {}
+    wers, clean_texts, adv_texts, transcribed_texts = {}, {}, {}, {}
     for vctk_file in vctk_files:
         audio_path_adv = save_dir / f"{vctk_file}_adv.wav"
         audio_path_clean = save_dir / f"{vctk_file}_nat.wav"
@@ -79,10 +77,11 @@ def wers(
                     )
 
         clean_texts[f"{vctk_file}_nat.wav"] = transcription_real
+        transcribed_texts[f"{vctk_file}.wav" = transcription_text
         adv_texts[f"{vctk_file}_adv.wav"] = adv_transcription_text
         wers[vctk_file] = inner_wers
 
-    return wers, clean_texts, adv_texts
+    return wers, clean_texts, adv_texts, transcribed_texts
 
 
 def run_evaluation(
@@ -104,7 +103,7 @@ def run_evaluation(
             )
         return
 
-    wers_dict, clean_texts, adv_texts = wers(
+    wers_dict, clean_texts, adv_texts, transcribed_texts = wers(
         attack_path=attack_path,
         model=model,
         attack=attack,
@@ -137,11 +136,16 @@ def run_evaluation(
     name_adv = Path(
         save_dir / f"transcriptions_noisy_w-{model.replace('.en', '')}.json"
     )
+    name_transcribe = Path(
+        save_dir / f"transcriptions_original_w-{model.replace('.en', '')}.json"
+    )
 
     with open(name_clean, "w") as f:
         json.dump(clean_texts, f, indent=4, ensure_ascii=False)
     with open(name_adv, "w") as f:
         json.dump(adv_texts, f, indent=4, ensure_ascii=False)
+    with open(name_transcribe, "w" as f:
+        json.dump(transcribed_texts, f, indent=4, ensure_ascii=False)
 
     if attack == "cw":
         name_tgt = Path(
