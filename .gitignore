@@ -10,3 +10,10 @@ data/
 
 # Data
 vctk/
+demand/
+
+# VS code
+.vscode/
+
+# Python
+__pycache__/
