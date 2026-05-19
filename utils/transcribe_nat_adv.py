@@ -7,6 +7,7 @@ from whisper.normalizers import EnglishTextNormalizer
 import pandas as pd
 import json
 from pathlib import Path
+from tqdm import tqdm
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -50,7 +51,7 @@ def wers(
 
     df = pd.read_csv(csv_path)
     wers, clean_texts, adv_texts, transcribed_texts = {}, {}, {}, {}
-    for vctk_file in vctk_files:
+    for vctk_file in tqdm(vctk_files):
         audio_path_adv = save_dir / f"{vctk_file}_adv.wav"
         audio_path_clean = save_dir / f"{vctk_file}_nat.wav"
 
@@ -77,7 +78,7 @@ def wers(
                     )
 
         clean_texts[f"{vctk_file}_nat.wav"] = transcription_real
-        transcribed_texts[f"{vctk_file}.wav" = transcription_text
+        transcribed_texts[f"{vctk_file}.wav"] = transcription_text
         adv_texts[f"{vctk_file}_adv.wav"] = adv_transcription_text
         wers[vctk_file] = inner_wers
 
@@ -144,7 +145,7 @@ def run_evaluation(
         json.dump(clean_texts, f, indent=4, ensure_ascii=False)
     with open(name_adv, "w") as f:
         json.dump(adv_texts, f, indent=4, ensure_ascii=False)
-    with open(name_transcribe, "w" as f:
+    with open(name_transcribe, "w") as f:
         json.dump(transcribed_texts, f, indent=4, ensure_ascii=False)
 
     if attack == "cw":
