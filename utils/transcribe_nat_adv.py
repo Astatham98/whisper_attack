@@ -67,6 +67,8 @@ def wers(
             transcription_text = EnglishTextNormalizer()(transcription["text"])
             if label == "clean":
                 inner_wers["clean"] = wer(transcription_real, transcription_text)
+                # Get clean transcription
+                transcribed_texts[f"{vctk_file}.wav"] = transcription_text
             else:
                 inner_wers["adv"] = wer(transcription_real, transcription_text)
                 adv_transcription_text = transcription_text
@@ -78,7 +80,6 @@ def wers(
                     )
 
         clean_texts[f"{vctk_file}_nat.wav"] = transcription_real
-        transcribed_texts[f"{vctk_file}.wav"] = transcription_text
         adv_texts[f"{vctk_file}_adv.wav"] = adv_transcription_text
         wers[vctk_file] = inner_wers
 
@@ -132,7 +133,7 @@ def run_evaluation(
     save_dir = base_path / "data" / "attacks" / attack / attack_path / "save"
 
     name_clean = Path(
-        save_dir / f"transcriptions_clean_w-{model.replace('.en', '')}.json"
+        save_dir / f"transcriptions_gt_w-{model.replace('.en', '')}.json"
     )
     name_adv = Path(
         save_dir / f"transcriptions_noisy_w-{model.replace('.en', '')}.json"
