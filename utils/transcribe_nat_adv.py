@@ -31,15 +31,10 @@ def wers(
     base_path = Path(base_path) if base_path is not None else PROJECT_ROOT
     device = "cuda" if torch.cuda.is_available() else "cpu"
     save_dir = base_path / "data" / "attacks" / attack / attack_path / "save"
+
     vctk_files = sorted(
-        f"vctk_{audio_file.stem.split('_')[1]}"
-        for audio_file in save_dir.glob("vctk_*_adv.wav")
+        audio_file.stem.replace("_adv", "") for audio_file in save_dir.glob("*_adv.wav")
     )
-    #Modify for demand
-    if len(vctk_files) == 0:
-        vctk_files = sorted(
-            str(audio_file).replace("_adv.wav", "").split("/")[-1] for audio_file in save_dir.glob("*_adv.wav")
-        )
     print(f"Evaluating {len(vctk_files)} samples from {attack_path} on model {model} with attack {attack}...")
 
     whisper_model = whisper.load_model(model).to(device)
@@ -55,8 +50,13 @@ def wers(
         audio_path_adv = save_dir / f"{vctk_file}_adv.wav"
         audio_path_clean = save_dir / f"{vctk_file}_nat.wav"
 
-        transcription_real = df.loc[df["ID"] == vctk_file]["wrd"].values[0]
-        transcription_real = EnglishTextNormalizer()(transcription_real)
+        match = df.loc[df["ID"] == vctk_file, "wrd"]
+        if match.empty:
+            raise ValueError(
+                f"No transcription found for ID '{vctk_file}' in CSV file '{csv_path}'. "
+                "Check that the CSV contains the expected VCTK sample IDs."
+            )
+        transcription_real = EnglishTextNormalizer()(match.values[0])
         inner_wers = {}
         adv_transcription_text = ""
 
@@ -142,11 +142,11 @@ def run_evaluation(
         save_dir / f"transcriptions_original_w-{model.replace('.en', '')}.json"
     )
 
-    with open(name_clean, "w") as f:
+    with open(name_clean, "w", encoding="utf-8") as f:
         json.dump(clean_texts, f, indent=4, ensure_ascii=False)
-    with open(name_adv, "w") as f:
+    with open(name_adv, "w", encoding="utf-8") as f:
         json.dump(adv_texts, f, indent=4, ensure_ascii=False)
-    with open(name_transcribe, "w") as f:
+    with open(name_transcribe, "w", encoding="utf-8") as f:
         json.dump(transcribed_texts, f, indent=4, ensure_ascii=False)
 
     if attack == "cw":
@@ -154,7 +154,7 @@ def run_evaluation(
             save_dir / f"transcriptions_targeted_w-{model.replace('.en', '')}.json"
         )
         tgt_scores = {f"{vctk_file}_adv.wav": wers_dict[vctk_file]["tgt"] for vctk_file in wers_dict.keys()}
-        with open(name_tgt, "w") as f:
+        with open(name_tgt, "w", encoding="utf-8") as f:
             json.dump(tgt_scores, f, indent=4, ensure_ascii=False)
 
     return average_clean_wer, average_adv_wer, average_tgt_wer
